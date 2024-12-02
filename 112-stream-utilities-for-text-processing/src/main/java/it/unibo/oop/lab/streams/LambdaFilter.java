@@ -6,7 +6,11 @@ import java.awt.Dimension;
 import java.awt.GridLayout;
 import java.awt.LayoutManager;
 import java.awt.Toolkit;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
@@ -27,7 +31,8 @@ import javax.swing.JTextArea;
  *
  * 4) List all the words in alphabetical order
  * 
- * 5) Write the count for each word, e.g. "word word pippo" should output "pippo -> 1 word -> 2"
+ * 5) Write the count for each word, e.g. "word word pippo" should output "pippo
+ * -> 1 word -> 2"
  *
  */
 public final class LambdaFilter extends JFrame {
@@ -38,7 +43,34 @@ public final class LambdaFilter extends JFrame {
         /**
          * Commands.
          */
-        IDENTITY("No modifications", Function.identity());
+        IDENTITY("No modifications", Function.identity()),
+        LOWERCASE("Convert to lowercase", (String str) -> str.toLowerCase()),
+        COUNT_CHARS("Count the number of characters", (String str) -> String.valueOf(str.length())),
+        COUNT_LINES("Count the number of lines", (String str) -> {
+            if (str.isBlank()) {
+                return "0";
+            }
+            return String.valueOf(
+                    str.chars()
+                            .filter(c -> c == (int) '\n')
+                            .count() + 1);
+
+        }),
+        LIST_WORDS("List all words in alphabetical order", (String str) -> {
+            return Arrays.stream(str.split(" "))
+                    .sorted()
+                    .collect(Collectors.joining(" "));
+        }),
+        COUNT_WORDS("Count each word", (String str) -> {
+            final Map<String, Integer> occ = new HashMap<>();
+            Arrays.stream(str.split(" "))
+                    .forEach(word -> occ.put(
+                            word,
+                            occ.containsKey(word) ? occ.get(word) + 1 : 1));
+            return occ.entrySet().stream()
+                    .map(entry -> entry.getKey() + " -> " + entry.getValue())
+                    .collect(Collectors.joining("\n"));
+        });
 
         private final String commandName;
         private final Function<String, String> fun;
@@ -84,6 +116,13 @@ public final class LambdaFilter extends JFrame {
         final int sh = (int) screen.getHeight();
         setSize(sw / 4, sh / 4);
         setLocationByPlatform(true);
+
+        /*
+         * Handlers
+         */
+        apply.addActionListener(e -> {
+            right.setText(((Command) combo.getSelectedItem()).translate(left.getText()));
+        });
     }
 
     /**
